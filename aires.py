@@ -1,22 +1,19 @@
 import streamlit as st
-import pytesseract
-from pdf2image import convert_from_bytes
+import fitz  # PyMuPDF
 import openai
-import tempfile
-import os
 
-# Set your OpenAI API key here or add in Streamlit Secrets
+# Load OpenAI API key from secrets or define it here
 openai.api_key = st.secrets["OPENAI_API_KEY"] if "OPENAI_API_KEY" in st.secrets else "YOUR_OPENAI_API_KEY"
 
-# Function to extract text from PDF
+# Extract text from PDF using PyMuPDF
 def extract_text_from_pdf(pdf_file):
-    images = convert_from_bytes(pdf_file.read())
     text = ""
-    for image in images:
-        text += pytesseract.image_to_string(image)
+    with fitz.open(stream=pdf_file.read(), filetype="pdf") as doc:
+        for page in doc:
+            text += page.get_text()
     return text
 
-# Function to generate ATS & improvement feedback
+# Analyze resume using OpenAI
 def analyze_resume(resume_text, job_role, weak_areas):
     prompt = f"""
 You are an AI resume reviewer. A user is applying for the role of "{job_role}".
@@ -65,3 +62,4 @@ if submit and uploaded_file:
             st.error(f"Something went wrong: {e}")
 else:
     st.info("Please upload a PDF resume and fill in the fields to begin.")
+
